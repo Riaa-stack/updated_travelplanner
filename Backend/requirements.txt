@@ -25,9 +25,9 @@ alembic==1.14.0
 python-dotenv==1.0.1
 
 # ==========================
-# Google Gemini AI
+# AI Provider
+# OpenRouter uses the existing requests dependency
 # ==========================
-google-genai>=1.30.0
 
 # ==========================
 # HTTP Requests

@@ -1,94 +1,54 @@
 from abc import ABC
 import json
 import time
-import traceback
 
-from app.external.gemini_client import GeminiClient
+from app.external.openrouter_client import OpenRouterClient
 from app.utils.prompt_loader import load_prompt
 from app.utils.json_parser import JSONParser
 from app.utils.output_validator import OutputValidator
 
 
 class BaseAgent(ABC):
-    """
-    Base class for all AI Agents.
+    """Base class for AI agents using the OpenRouter client."""
 
-    Responsibilities:
-    - Load Prompt
-    - Call Gemini
-    - Parse JSON
-    - Validate Output
-    - Measure Execution Time
-    - Return Standard Response
-    """
-
-    def __init__(
-        self,
-        prompt_file: str,
-        required_fields: list | None = None
-    ):
-        self.client = GeminiClient()
+    def __init__(self, prompt_file: str, required_fields: list | None = None):
+        self.client = OpenRouterClient()
         self.prompt = load_prompt(prompt_file)
         self.required_fields = required_fields or []
 
-    def execute(
-        self,
-        input_data: dict,
-        temperature: float = 0.3
-    ):
-
+    def execute(self, input_data: dict, temperature: float = 0.3):
         start_time = time.perf_counter()
 
         user_prompt = json.dumps(
             input_data,
-            indent=4,
-            ensure_ascii=False
+            indent=2,
+            ensure_ascii=False,
         )
 
-        for attempt in range(3):
-
-            print(f"\n🚀 Calling Gemini from {self.__class__.__name__}...")
-
-            response = self.client.generate(
-                system_prompt=self.prompt,
-                user_prompt=user_prompt,
-                temperature=temperature
-            )
-
-            print(f"✅ Gemini returned for {self.__class__.__name__}")
-
-            print(f"\n========== {self.__class__.__name__} ==========")
-            print(response)
-            print("=============================================\n")
-
-            try:
-
-                parsed = JSONParser.parse(response)
-
-                OutputValidator.validate(
-                    parsed,
-                    self.required_fields
-                )
-
-                break
-
-            except Exception:
-
-                print(
-                    f"⚠ Invalid JSON from {self.__class__.__name__}. Retrying ({attempt+1}/3)..."
-                )
-
-                if attempt == 2:
-                    raise
-
-        execution_time = round(
-            time.perf_counter() - start_time,
-            3
+        # One LLM request per agent execution. JSON validation is local and
+        # does not trigger another model request; this prevents accidental
+        # request multiplication when an API quota is tight.
+        response = self.client.generate(
+            system_prompt=self.prompt,
+            user_prompt=user_prompt,
+            temperature=temperature,
+            retries=1,
         )
+
+        parsed = JSONParser.parse(response)
+        OutputValidator.validate(parsed, self.required_fields)
+
+        execution_time = round(time.perf_counter() - start_time, 3)
+
+        print(f"✅ {self.__class__.__name__} completed in {execution_time}s")
 
         return {
             "success": True,
             "agent": self.__class__.__name__,
             "execution_time": execution_time,
-            "data": parsed
+            "data": parsed,
         }
+
+    # Compatibility for the existing TestAgent implementation.
+    def run(self, input_data: dict):
+        return self.execute(input_data)
