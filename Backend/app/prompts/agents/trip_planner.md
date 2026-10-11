@@ -26,8 +26,8 @@ REPLAN BEHAVIOR:
 - Weather Conditions Changed: treat replan_details as the new weather condition. Adapt or replace weather-sensitive outdoor activities, adjust timing and travel guidance, and produce a complete revised itinerary suitable for that condition. Do not simply repeat the original plan.
 - Budget Changed: treat replan_details as the user's new budget. The budget section MUST use that new amount and the itinerary must be realistic for it.
 - Crowded / Queue Mitigation: treat replan_details as the affected place/area. Reschedule it to a better time or replace it with a suitable nearby alternative.
-- Custom Adjustment: treat replan_details as the exact requested change and apply it throughout the itinerary where relevant.
-- Always return a complete revised itinerary for ALL requested days, not just the changed day.
+- Trip Duration Changed: replan_details contains the new total duration (for example, "New duration: 3 days"). Use the input days value as the source of truth and return exactly that many itinerary days and crowd objects. Never retain extra days from current_plan.
+- Always return a complete revised itinerary for ALL requested days, not just the changed day. The number of route.days entries and crowd.crowd entries MUST equal input days exactly. Number the days consecutively from 1 through input days; do not add bonus or optional days.
 
 Return ONE compact JSON object containing:
 

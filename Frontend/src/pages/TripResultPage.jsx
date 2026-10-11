@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -43,7 +43,7 @@ export default function TripResultPage() {
 
   const [replanModalOpen, setReplanModalOpen] = useState(false);
   const [replanReason, setReplanReason] = useState('Budget Changed');
-  const [customReason, setCustomReason] = useState('');
+  const [newTripDays, setNewTripDays] = useState(String(activeTrip?.days || 1));
   const [replanDetails, setReplanDetails] = useState('');
   const [newBudget, setNewBudget] = useState('');
   const [budgetCurrency, setBudgetCurrency] = useState(activeTrip?.currency || 'USD');
@@ -53,6 +53,10 @@ export default function TripResultPage() {
   const [copied, setCopied] = useState(false);
   const [replanErrors, setReplanErrors] = useState({});
   const [replanSubmitError, setReplanSubmitError] = useState('');
+
+  useEffect(() => {
+    if (activeTrip?.days) setNewTripDays(String(activeTrip.days));
+  }, [activeTrip?.id, activeTrip?.days]);
 
   if (!activeTrip) {
     return (
@@ -72,7 +76,7 @@ export default function TripResultPage() {
     setReplanSubmitError('');
     const validationErrors = validateReplanForm({
       reason: replanReason, newBudget, currency: budgetCurrency,
-      weatherCondition, customWeather, crowdedLocation, customReason
+      weatherCondition, customWeather, crowdedLocation, newTripDays
     });
     if (!activeTrip?.id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(activeTrip.id)) {
       setReplanSubmitError('A valid saved trip is required before replanning.');
@@ -85,7 +89,7 @@ export default function TripResultPage() {
     if (replanReason === 'Budget Changed') details = `New budget: ${budgetCurrency} ${String(newBudget).trim()}`;
     else if (replanReason === 'Weather Conditions Changed') details = weatherCondition === 'Other' ? customWeather.trim() : weatherCondition;
     else if (replanReason === 'Crowded / Queue Mitigation') details = crowdedLocation.trim();
-    else if (replanReason === 'Custom Adjustment') details = customReason.trim();
+    else if (replanReason === 'Trip Duration Changed') details = `New duration: ${String(newTripDays).trim()} days`;
 
     try {
       await replanTrip(activeTrip.id, replanReason, details);
@@ -106,7 +110,7 @@ export default function TripResultPage() {
       weatherCondition,
       customWeather: field === 'customWeather' ? value : customWeather,
       crowdedLocation: field === 'crowdedLocation' ? value : crowdedLocation,
-      customReason: field === 'customReason' ? value : customReason,
+      newTripDays: field === 'newTripDays' ? value : newTripDays,
     };
     const nextErrors = validateReplanForm(nextValues);
     setReplanErrors((previous) => ({ ...previous, [field]: nextErrors[field] }));
@@ -377,7 +381,7 @@ export default function TripResultPage() {
                 'Budget Changed',
                 'Weather Conditions Changed',
                 'Crowded / Queue Mitigation',
-                'Custom Adjustment'
+                'Trip Duration Changed'
               ]}
             />
 
@@ -468,19 +472,22 @@ export default function TripResultPage() {
               </div>
             )}
 
-            {replanReason === 'Custom Adjustment' && (
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-slate-700">What should change?</label>
-                <textarea
-                  rows={3}
-                  value={customReason}
-                  maxLength={2000}
-                  onChange={(e) => clearReplanError('customReason', setCustomReason, e.target.value)}
-                  aria-invalid={Boolean(replanErrors.customReason)}
-                  placeholder="e.g., Add more relaxed morning activities and child-friendly stops..."
+            {replanReason === 'Trip Duration Changed' && (
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-slate-700">New Trip Duration (Days)</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="30"
+                  step="1"
+                  value={newTripDays}
+                  onChange={(e) => clearReplanError('newTripDays', setNewTripDays, e.target.value)}
+                  aria-invalid={Boolean(replanErrors.newTripDays)}
                   className="w-full text-xs bg-white border border-slate-300 rounded-xl p-3 focus:outline-none focus:border-blue-600"
+                  required
                 />
-                {replanErrors.customReason && <p className="text-[11px] text-red-600">{replanErrors.customReason}</p>}
+                {replanErrors.newTripDays && <p className="text-[11px] text-red-600">{replanErrors.newTripDays}</p>}
+                <p className="text-[11px] text-slate-500">Current trip: {activeTrip.days} day(s). Enter the new total duration (1–30 days). The AI will regenerate the complete itinerary for that duration.</p>
               </div>
             )}
 

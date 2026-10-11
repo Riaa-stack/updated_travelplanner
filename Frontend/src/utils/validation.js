@@ -57,9 +57,9 @@ export function validateTripForm(form) {
   return errors;
 }
 
-export function validateReplanForm({ reason, newBudget, currency, weatherCondition, customWeather, crowdedLocation, customReason }) {
+export function validateReplanForm({ reason, newBudget, currency, weatherCondition, customWeather, crowdedLocation, newTripDays }) {
   const errors = {};
-  const reasons = ['Budget Changed', 'Weather Conditions Changed', 'Crowded / Queue Mitigation', 'Custom Adjustment'];
+  const reasons = ['Budget Changed', 'Weather Conditions Changed', 'Crowded / Queue Mitigation', 'Trip Duration Changed'];
   if (!reasons.includes(reason)) errors.reason = 'Select a valid reason for replanning.';
 
   if (reason === 'Budget Changed') {
@@ -80,10 +80,11 @@ export function validateReplanForm({ reason, newBudget, currency, weatherConditi
     const value = String(crowdedLocation ?? '').trim();
     if (!value) errors.crowdedLocation = 'Enter the crowded place or location.';
     else if (value.length > 300) errors.crowdedLocation = 'Location cannot exceed 300 characters.';
-  } else if (reason === 'Custom Adjustment') {
-    const value = String(customReason ?? '').trim();
-    if (!value) errors.customReason = 'Describe what you want to change.';
-    else if (value.length > 2000) errors.customReason = 'Instructions cannot exceed 2000 characters.';
+  } else if (reason === 'Trip Duration Changed') {
+    const text = String(newTripDays ?? '').trim();
+    const value = Number(text);
+    if (!text) errors.newTripDays = 'New trip duration is required.';
+    else if (!Number.isInteger(value) || value < 1 || value > 30) errors.newTripDays = 'Trip duration must be a whole number between 1 and 30.';
   }
   return errors;
 }

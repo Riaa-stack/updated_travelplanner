@@ -204,6 +204,7 @@ def replan_trip(trip_id):
         # planning budget. The AI must rebuild the allocation around it.
         replanning_budget = trip.budget
         replanning_currency = trip.currency
+        replanning_days = trip.days
         if reason == "Budget Changed" and details:
             import re
             budget_match = re.search(r"(?:USD|INR)\s*([0-9]+(?:\.[0-9]+)?)", details, re.IGNORECASE)
@@ -212,12 +213,17 @@ def replan_trip(trip_id):
             currency_match = re.match(r"New budget:\s*(USD|INR)", details, re.IGNORECASE)
             if currency_match:
                 replanning_currency = currency_match.group(1).upper()
+        elif reason == "Trip Duration Changed":
+            import re
+            days_match = re.fullmatch(r"New duration:\s*(\d+)\s+days?", details, re.IGNORECASE)
+            if days_match:
+                replanning_days = int(days_match.group(1))
 
         planner_input = {
             "destination": trip.destination,
             "budget": replanning_budget,
             "currency": replanning_currency,
-            "days": trip.days,
+            "days": replanning_days,
             "interests": trip.interests,
             "group_type": data.get("group_type", "Couple (2)"),
             "travel_style": trip.travel_style or data.get("travel_style", "Cultural & Luxury"),

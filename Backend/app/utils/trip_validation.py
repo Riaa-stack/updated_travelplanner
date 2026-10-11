@@ -24,7 +24,7 @@ ALLOWED_SEASONS = {
 }
 ALLOWED_REPLAN_REASONS = {
     "Budget Changed", "Weather Conditions Changed",
-    "Crowded / Queue Mitigation", "Custom Adjustment"
+    "Crowded / Queue Mitigation", "Trip Duration Changed"
 }
 ALLOWED_WEATHER = {
     "Heavy Rain", "Storm / Thunderstorm", "Snow", "Extreme Heat",
@@ -188,9 +188,8 @@ def validate_replan_request(data):
             errors["details"] = "Enter the crowded place or location."
         elif len(details) > 300:
             errors["details"] = "Location cannot exceed 300 characters."
-    elif reason == "Custom Adjustment":
-        if not details:
-            errors["details"] = "Custom instructions are required."
-        elif len(details) > MAX_CUSTOM_CHANGE_LENGTH:
-            errors["details"] = f"Custom instructions cannot exceed {MAX_CUSTOM_CHANGE_LENGTH} characters."
+    elif reason == "Trip Duration Changed":
+        match = re.fullmatch(r"New duration:\s*(\d+)\s+days?", details, re.IGNORECASE)
+        if not match or not (1 <= int(match.group(1)) <= MAX_TRIP_DAYS):
+            errors["details"] = f"Provide a whole-number trip duration between 1 and {MAX_TRIP_DAYS} days."
     return errors
